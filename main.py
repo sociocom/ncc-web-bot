@@ -6,6 +6,8 @@ https://github.com/line/line-bot-sdk-python/tree/master/examples/fastapi-echo
 import os
 import sys
 from dotenv import load_dotenv
+import random
+import pandas as pd
 from fastapi import Request, FastAPI, HTTPException
 from linebot.v3.webhook import WebhookParser
 from linebot.v3.messaging import (
@@ -43,6 +45,13 @@ async_api_client = AsyncApiClient(configuration)
 line_bot_api = AsyncMessagingApi(async_api_client)
 parser = WebhookParser(channel_secret)
 
+df = pd.read_csv(
+    "/Users/k0tk267/dev/labo/ncc-line-chatbot-poc/data/qa_sheet.csv"
+)
+
+def search_answer() -> str:
+    return str(df["Answer"][random.randint(0, len(df))])
+
 @app.post("/callback")
 async def handle_callback(request: Request):
     signature = request.headers['X-Line-Signature']
@@ -65,7 +74,7 @@ async def handle_callback(request: Request):
         await line_bot_api.reply_message(
             ReplyMessageRequest(
                 reply_token=event.reply_token,
-                messages=[TextMessage(text=event.message.text)]
+                messages=[TextMessage(text=search_answer())]
             )
         )
 
