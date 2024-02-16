@@ -6,7 +6,7 @@ connect:
 
 docker-run:
 	docker run -it --rm -p 3000:3000 \
-	--name ncc-line-chatbot-poc -it \
+	--name ncc-line-chatbot-poc \
 	-v $(PWD)/data:/bot/data \
 	ncc-line-chatbot-poc \
 	/bin/bash -c "source ~/.bashrc && rye run uvicorn main:app --reload --host=0.0.0.0 --port=3000"
