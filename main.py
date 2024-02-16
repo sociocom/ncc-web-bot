@@ -46,7 +46,7 @@ line_bot_api = AsyncMessagingApi(async_api_client)
 parser = WebhookParser(channel_secret)
 
 df = pd.read_csv(
-    "/Users/k0tk267/dev/labo/ncc-line-chatbot-poc/data/qa_sheet.csv"
+    "./data/qa_sheet.csv"
 )
 
 def search_answer() -> str:
