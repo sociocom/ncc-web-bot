@@ -1,0 +1,13 @@
+version: "3.8"
+services:
+  ncc-web-bot:
+    restart: always
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    volumes:
+      - ./data:/bot/data
+      - ./src:/bot/src
+    ports:
+      - "127.0.0.1:3030:3030"
+    command: ["/bin/bash", "-c", "source ~/.bashrc && rye run streamlit run /bot/src/login.py --server.port=3030 --server.baseUrlPath=/brecobot-counselor-chat"]
