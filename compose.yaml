@@ -10,4 +10,9 @@ services:
       - ./src:/bot/src
     ports:
       - "127.0.0.1:3030:3030"
+    environment:
+      STREAMLIT_SERVER_PORT: 3030
+      STREAMLIT_SERVER_ADDRESS: "0.0.0.0"
+      STREAMLIT_BROWSER_SERVER_ADDRESS: "0.0.0.0"  # ここを修正
+      STREAMLIT_BROWSER_SERVER_PORT: 3030
     command: ["/bin/bash", "-c", "source ~/.bashrc && rye run streamlit run /bot/src/login.py --server.port=3030 --server.baseUrlPath=/brecobot-counselor-chat"]
