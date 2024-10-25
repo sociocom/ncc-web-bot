@@ -1,8 +1,8 @@
 [project]
-name = "ncc-line-chatbot-poc"
+name = "ncc-web-bot"
 version = "0.1.0"
 description = "Add your description here"
-authors = [{ name = "k0tk267", email = "k0tk2670@gmail.com" }]
+authors = [{ name = "yuka-ot", email = "data2000analysis@gmail.com" }]
 dependencies = [
     "line-bot-sdk>=3.7.0",
     "python-dotenv>=1.0.0",
@@ -11,6 +11,8 @@ dependencies = [
     "pandas>=2.0.3",
     "sentence_transformers>=2.4.0",
     "scikit-learn>=1.3.2",
+    "streamlit>=1.39.0",
+    "watchdog>=4.0.2",
 ]
 # readme = "README.md"
 requires-python = ">= 3.8"
@@ -21,13 +23,10 @@ build-backend = "hatchling.build"
 
 [tool.rye]
 managed = true
-dev-dependencies = [
-    "pandas>=2.0.3",
-    "ipykernel>=6.29.4",
-]
+dev-dependencies = ["pandas>=2.0.3", "ipykernel>=6.29.4"]
 
 [tool.hatch.metadata]
 allow-direct-references = true
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/ncc_line_chatbot_poc"]
+packages = ["src/ncc_web_bot"]

@@ -8,7 +8,10 @@ import csv
 import sys
 from dotenv import load_dotenv
 import random
+import string
+
 import pandas as pd
+from datetime import datetime, timezone, timedelta
 from fastapi import Request, FastAPI, HTTPException
 from linebot.v3.webhook import WebhookParser
 from linebot.v3.messaging import (
@@ -23,7 +26,7 @@ from linebot.v3.messaging import (
 )
 from linebot.v3.exceptions import InvalidSignatureError
 from linebot.v3.webhooks import MessageEvent, TextMessageContent
-from find_answer import find_answer, find_option
+from fqa_service import find_answer, find_option
 
 load_dotenv()
 
@@ -45,10 +48,12 @@ parser = WebhookParser(channel_secret)
 
 
 def save_chat(
+    user_id,
+    messege_id,
     user_message,
-    response,
-    again_user_choice,
-    again_response,
+    response_id,
+    timestamp,
+    reply_id,
     version,
     file_name="./data/outputs/line_chat_history.csv",
 ):
@@ -58,10 +63,12 @@ def save_chat(
             writer = csv.writer(file)
             writer.writerow(
                 [
+                    "user_id",
+                    "messege_id",
                     "user_message",
-                    "response",
-                    "again_user_choice",
-                    "again_response",
+                    "response_id",
+                    "timestamp",
+                    "reply_id",
                     "version",
                 ]
             )
@@ -70,15 +77,30 @@ def save_chat(
     with open(file_name, "a", encoding="utf-8") as file:
         writer = csv.writer(file)
         writer.writerow(
-            [user_message, response, again_user_choice, again_response, version]
+            [
+                user_id,
+                messege_id,
+                user_message,
+                response_id,
+                timestamp,
+                reply_id,
+                version,
+            ]
         )
 
 
+def generate_random_string(length):
+    letters = string.ascii_letters + string.digits + string.punctuation
+    return "".join(random.choice(letters) for _ in range(length))
+
+
 last_chat = {
+    "user_id": "",
+    "messege_id": "",
     "user_message": "",
-    "response": "",
-    "again_user_choice": "",
-    "again_response": "",
+    "response_id": "",
+    "timestamp": "",
+    "reply_id": "",
 }
 
 
@@ -100,14 +122,26 @@ async def handle_callback(request: Request):
             continue
         if not isinstance(event.message, TextMessageContent):
             continue
-        answer, option, again_user_choice = find_option(event.message.text)
+        answer, option, again_user_choice, index = find_option(event.message.text)
 
+        last_chat["user_id"] = event.source.user_id
+        last_chat["messege_id"] = event.message.id
         last_chat["user_message"] = event.message.text
-        last_chat["response"] = "\t".join(answer)
+        last_chat["response_id"] = index
+
+        utc_timestamp = event.timestamp
+        utc_dt = datetime.utcfromtimestamp(
+            utc_timestamp / 1000
+        )  # UTCのタイムスタンプをミリ秒から秒に変換してから変換
+        jst_timezone = timezone(
+            timedelta(hours=9)
+        )  # 日本時間のタイムゾーンオブジェクトを作成
+        jst_dt = utc_dt.replace(tzinfo=timezone.utc).astimezone(
+            jst_timezone
+        )  # UTCを日本時間に変換
+        last_chat["timestamp"] = jst_dt
 
         if option != "":
-            print("聞き返し")
-            print("option:", option)
             quick_reply = QuickReply(
                 items=[
                     QuickReplyItem(
@@ -118,14 +152,24 @@ async def handle_callback(request: Request):
                     ),
                 ]
             )
-            await line_bot_api.reply_message(
+            replymessease = await line_bot_api.reply_message(
                 ReplyMessageRequest(
                     reply_token=event.reply_token,
                     messages=[TextMessage(text=answer[0], quick_reply=quick_reply)],
                 )
             )
-            last_chat["again_user_choice"] = event.message.text
-            last_chat["again_response"] = "\t".join(answer)
+            last_chat["user_message"] = event.message.text
+            last_chat["response_id"] = index
+            last_chat["reply_id"] = generate_random_string(10)
+            save_chat(
+                last_chat["user_id"],
+                last_chat["messege_id"],
+                last_chat["user_message"],
+                last_chat["response_id"],
+                last_chat["timestamp"],
+                last_chat["reply_id"],
+                version="sample",
+            )
         else:
             await line_bot_api.reply_message(
                 ReplyMessageRequest(
@@ -133,17 +177,17 @@ async def handle_callback(request: Request):
                     messages=[TextMessage(text=ans) for ans in answer],
                 )
             )
-            if last_chat["again_user_choice"]:
-                last_chat["user_message"] = last_chat["again_user_choice"]
-                last_chat["response"] = last_chat["again_response"]
-                last_chat["again_user_choice"] = event.message.text
-                last_chat["again_response"] = "\t".join(answer)
+            last_chat["user_message"] = event.message.text
+            last_chat["response_id"] = index
             save_chat(
+                last_chat["user_id"],
+                last_chat["messege_id"],
                 last_chat["user_message"],
-                last_chat["response"],
-                last_chat["again_user_choice"],
-                last_chat["again_response"],
+                last_chat["response_id"],
+                last_chat["timestamp"],
+                last_chat["reply_id"],
                 version="sample",
             )
+            last_chat["reply_id"] = ""
 
     return "OK"

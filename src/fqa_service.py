@@ -39,10 +39,8 @@ class FaqService:
                 option = option.split("\t")
                 option_question = option_question.split("\t")
                 response = [self.qestion_interpreting[similar_question_index]]
-            else:
-                print("option: None")
 
-        return response, option, option_question
+        return response, option, option_question, similar_question_index
 
 
 # データセットのパス
@@ -55,16 +53,12 @@ faq_service = FaqService(faq_data_path)
 def find_answer(input_text) -> str:
     # 応答の取得
     response, option, option_question = faq_service.get_response(input_text)
-    print("find_answer 応答:", response)
 
     return response
 
 
 def find_option(input_text) -> str:
     # 応答の取得
-    response, option, option_question = faq_service.get_response(input_text)
-    print("find_option 応答:")
-    print("response:", response)
-    print("option:", option)
+    response, option, option_question, index = faq_service.get_response(input_text)
 
-    return response, option, option_question
+    return response, option, option_question, index
