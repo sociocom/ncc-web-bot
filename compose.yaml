@@ -13,4 +13,4 @@ services:
     environment:
       STREAMLIT_SERVER_ADDRESS: "0.0.0.0"
       STREAMLIT_BROWSER_SERVER_ADDRESS: aoi.naist.jp
-    command: ["/bin/bash", "-c", "source ~/.bashrc && rye run streamlit run /bot/src/login.py --server.port=3030 --server.baseUrlPath=/brecobot-counselor-chat"]
+    command: ["streamlit", "run", "/bot/src/login.py", "--server.port=3030", "--server.baseUrlPath=/brecobot-counselor-chat"]

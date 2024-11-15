@@ -1,18 +1,23 @@
-FROM debian:stable
-SHELL ["/bin/bash", "-lc"]
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
+FROM python:3.9-slim
 
-RUN apt-get update && apt-get install -y curl build-essential
+ENV RYE_NO_AUTO_INSTALL=1
+ENV RYE_INSTALL_OPTION="--yes"
 
-RUN curl -Lf https://rye.astral.sh/get | RYE_NO_AUTO_INSTALL=1 RYE_INSTALL_OPTION="--yes" bash && \
+RUN apt-get update && apt-get install -y curl build-essential && \
+    rm -rf /var/lib/apt/lists/*
+
+RUN curl -Lf https://rye.astral.sh/get | bash && \
     echo 'source "/root/.rye/env"' >> ~/.bashrc
+
+SHELL ["/bin/bash", "-lc"]
 
 WORKDIR /bot
 
 COPY .python-version pyproject.toml requirements.lock requirements-dev.lock /bot/
-
-RUN source ~/.bashrc && rye sync --no-lock
+RUN source ~/.bashrc && rye sync --no-lock && \
+    rm -rf /root/.cache
 
 COPY src/ /bot/src
 COPY .env /bot/
+
+CMD ["/bin/bash", "-c", "source ~/.bashrc && rye run streamlit run /bot/src/login.py --server.port=3030 --server.baseUrlPath=/brecobot-counselor-chat"]
