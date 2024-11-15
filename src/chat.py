@@ -6,6 +6,7 @@ from datetime import datetime
 import pandas as pd
 import os
 from fqa_service import find_answer, find_option
+import base64
 
 # Hide Streamlit deprecation warnings
 logging.getLogger("streamlit").setLevel(logging.ERROR)
@@ -40,6 +41,11 @@ def add_message(user, role, message):
         writer.writerow([user, role, message, timestamp])
 
 
+def get_base64_encoded_image(image_path):
+    with open(image_path, "rb") as image_file:
+        return base64.b64encode(image_file.read()).decode("utf-8")
+
+
 # メッセージを表示する関数
 def display_messages():
 
@@ -48,7 +54,7 @@ def display_messages():
         """
         <style>
         .chatbox {
-            max-width: 70%;
+            max-width: 80%;
             margin: 10px;
             padding: 10px;
             border-radius: 10px;
@@ -83,6 +89,32 @@ def display_messages():
             )
 
 
+bot_icon_path = "./data/icon.png"
+bot_icon_base64 = get_base64_encoded_image(bot_icon_path)
+# st.session_state.messages が存在しない場合に初期化
+if "messages" not in st.session_state:
+    st.session_state.messages = []  # 初期値として空のリストを設定
+
+for message in st.session_state.messages:
+    if message["role"] == "bot":
+        st.markdown(
+            f"""
+            <div class="chatbox chatbox-bot">
+                <img src="data:image/png;base64,{bot_icon_base64}" alt="Bot Icon">
+                <div>{message["message"]}</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+    else:
+        st.markdown(
+            f"""
+            <div class="chatbox chatbox-user">{message["message"]}</div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+
 # CSVファイルからチャット履歴を読み込む関数
 def load_chat_history(user):
     if os.path.exists(CSV_FILE_PATH):
@@ -102,6 +134,20 @@ def load_chat_history(user):
 
 # チャットの履歴を表示する関数
 def chat_screen(user):
+
+    st.set_page_config(
+        page_title="BRECOBOT相談員用チャットボット",
+        page_icon=":female-doctor:",
+        menu_items={
+            "Get Help": "https://www.extremelycoolapp.com/help",
+            "Report a bug": "https://www.extremelycoolapp.com/bug",
+            "About": """
+            # BRECOBOT相談員用チャットボット
+            国立がん研究センターがん情報サービスの相談員用チャットボットです。""",
+        },
+    )
+    st.image("./data/ganjoho_logo.png")
+    st.title("BRECOBOT相談員用chatbot")
 
     # セッションステートの初期化
     if "step" not in st.session_state:
@@ -189,8 +235,8 @@ def chat_screen(user):
         user_choice = st.radio(
             "以下から聞きたいことを選択してください",
             [
-                st.session_state.again_user_choice[0],
-                st.session_state.again_user_choice[1],
+                st.session_state.again_user_choice[i]
+                for i in range(len(st.session_state.again_user_choice))
             ],
             key="user_choice",
         )
