@@ -7,6 +7,7 @@ import pandas as pd
 import os
 from fqa_service import find_answer, find_option
 import base64
+import re
 
 # Hide Streamlit deprecation warnings
 logging.getLogger("streamlit").setLevel(logging.ERROR)
@@ -46,6 +47,12 @@ def get_base64_encoded_image(image_path):
         return base64.b64encode(image_file.read()).decode("utf-8")
 
 
+def make_links_clickable(text):
+    # URLを検出し、自動的に<a>タグで囲む
+    url_pattern = r"(https?://\S+)"
+    return re.sub(url_pattern, r'<a href="\1" target="_blank">\1</a>', text)
+
+
 # メッセージを表示する関数
 def display_messages():
 
@@ -68,23 +75,36 @@ def display_messages():
         }
         .chatbox-user {
             background-color: #E6E6E6;
-            text-align: right;
+            text-align: left;
             float: right;
             border-radius: 10px 10px 0 10px;
+        }
+        a {
+            color: blue;
+            text-decoration: underline;
         }
         </style>
         """,
         unsafe_allow_html=True,
     )
+
     for message in st.session_state.messages:
         if message["role"] == "bot":
             st.markdown(
-                f'<div class="chatbox chatbox-bot">{message["message"]}</div>',
+                f"""
+                <div class="chatbox chatbox-bot">
+                    {make_links_clickable(message["message"])}
+                </div>
+                """,
                 unsafe_allow_html=True,
             )
         else:
             st.markdown(
-                f'<div class="chatbox chatbox-user">{message["message"]}</div>',
+                f"""
+                <div class="chatbox chatbox-user">
+                    {make_links_clickable(message["message"])}
+                </div>
+                """,
                 unsafe_allow_html=True,
             )
 
@@ -181,19 +201,22 @@ def chat_screen(user):
             add_message(
                 user,
                 "bot",
-                "初めまして！私の名前はBRECOBOTです。乳がんに関する情報を提供するチャットボットです。",
+                "初めまして！私の名前はBRECOBOTです。私の名前の意味は、Breast Cancer Compass Robot。乳がんに関する情報の大海原を渡っていくための羅針盤をイメージしています。 ",
             )
             add_message(
                 user,
                 "bot",
-                "チャットを始める前に、この調査の目的について少し説明させてください。",
+                "チャットを始める前に、この調査の目的について少し説明させてください。詳しいことは、お送りした説明・同意文書をお読みください。<br>・ BRECOBOT は、根拠に基づく確かながん情報を提供できる、チャットボット開発を目的に試作したものです。<br>・がん専門相談員の皆様に BRECOBOT を使ってもらい、入力していただいたデータとフィードバックデータを参考に、さらなる改良を目指しています。",
             )
             add_message(
                 user,
                 "bot",
-                "このチャットボットは乳がんに関する根拠に基づいた情報を提供します。同意いただけますか？",
+                "ここまでお読みいただき、調査にご協力いただける場合は、「同意する」にチェックをお願いします。",
             )
+            st.session_state.step = 1.5
+            st.rerun()
 
+    if st.session_state.step == 1.5:
         agreement = st.radio(
             "調査に同意いただけますか？", ["同意する", "同意しない"], key="agreement"
         )
@@ -206,13 +229,19 @@ def chat_screen(user):
                 )
                 st.stop()
             else:
+                add_message(
+                    user,
+                    "bot",
+                    "本チャットボット BRECOBOT は、乳がんに関する質問に特化して開発されています。がん専門相談員としての経験から、がんと診断された人やその家族からの相談において想定される内容や、これまでの相談の中で相談員として知りたかった乳がんに関する質問をご入力ください。",
+                )
                 st.session_state.step = 2
                 st.rerun()
 
     if st.session_state.step == 2:
         # 質問の入力
         user_input = st.text_input(
-            "乳がんに関する質問を入力してください", key="user_input"
+            "乳がんに関する質問をご入力ください。",
+            key="user_input",
         )
 
         if st.button("送信", key="user_input_btn"):
@@ -299,11 +328,13 @@ def chat_screen(user):
     if st.session_state.step == 5:
         # 質問入力に戻るかどうか
         return_choice = st.radio(
-            "質問入力に戻りますか？", ["はい", "いいえ"], key="return_choice"
+            "チャットボットへの質問入力に戻りますか？",
+            ["はい", "いいえ"],
+            key="return_choice",
         )
 
         if st.button("選択送信", key="return_choice_btn"):
-            add_message(user, "bot", "質問入力に戻りますか？")
+            add_message(user, "bot", "チャットボットへの質問入力に戻りますか？")
             add_message(user, "user", return_choice)
             if return_choice == "はい":
                 st.session_state.step = 2
@@ -312,7 +343,7 @@ def chat_screen(user):
                 add_message(
                     user,
                     "bot",
-                    "ご利用いただきありがとうございました。最終フィードバックにご協力ください。",
+                    "ご利用いただきありがとうございました。私を利用してみてどうでしたか？ご利用後のフィードバックにご協力をお願いします。",
                 )
                 st.session_state.step = 6
                 st.rerun()
@@ -320,13 +351,15 @@ def chat_screen(user):
     if st.session_state.step == 6:
         # 利用後のフィードバック
         usability_feedback = st.radio(
-            "チャットボットを実際の相談の中で使えそうですか？",
+            "1. チャットボットを実際の相談の中で使えそうですか？",
             ["使えそう", "改良すれば使える", "相談に使うのは難しい"],
             key="usability_feedback",
         )
 
         if st.button("送信", key="usability_feedback_btn"):
-            add_message(user, "bot", "チャットボットを実際の相談の中で使えそうですか？")
+            add_message(
+                user, "bot", "1. チャットボットを実際の相談の中で使えそうですか？"
+            )
             add_message(user, "user", usability_feedback)
 
             st.session_state.step = 7
@@ -348,7 +381,7 @@ def chat_screen(user):
     if st.session_state.step == 8:
         # 今後の利用意向
         future_use = st.radio(
-            "今後、チャットボットを実際の相談の中で使いたいと思いますか？",
+            "2. 今後、チャットボットを実際の相談の中で使いたいと思いますか？",
             ["使いたい", "どちらともいえない", "使いたくない"],
             key="future_use",
         )
@@ -357,7 +390,7 @@ def chat_screen(user):
             add_message(
                 user,
                 "bot",
-                "今後、チャットボットを実際の相談の中で使いたいと思いますか？",
+                "2. 今後、チャットボットを実際の相談の中で使いたいと思いますか？",
             )
             add_message(user, "user", future_use)
 
@@ -380,7 +413,7 @@ def chat_screen(user):
     if st.session_state.step == 10:
         # 最後のフィードバック
         final_feedback = st.text_area(
-            "最後に私を使ってみてのご感想など、ご自由にお書きください。",
+            "3. 最後に私を使ってみてのご感想など、どんなことでも結構ですので、ご自由にご入力ください",
             key="final_feedback",
         )
 
@@ -388,13 +421,15 @@ def chat_screen(user):
             add_message(
                 user,
                 "bot",
-                "最後に私を使ってみてのご感想など、ご自由にお書きください。",
+                "3. 最後に私を使ってみてのご感想など、ご自由にお書きください。",
             )
             add_message(user, "user", final_feedback)
 
             if final_feedback:
                 add_message(
-                    user, "bot", "調査は以上です。ご意見ありがとうございました。"
+                    user,
+                    "bot",
+                    "調査は以上です。ご意見などがございましたら、研究事務局までお気軽にご連絡ください。ncc-ganchatbot＠ml.res.ncc.go.jp <br>ご協力ありがとうございました。",
                 )
                 st.session_state.step = 11
                 st.rerun()
