@@ -44,7 +44,7 @@ class FaqService:
 
 
 # データセットのパス
-faq_data_path = "./data/NCC_FAQdata_20241112.csv"
+faq_data_path = "./data/NCC_FAQdata_20241112_for_web.csv"
 
 # FaqServiceの初期化
 faq_service = FaqService(faq_data_path)
