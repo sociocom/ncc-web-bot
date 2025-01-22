@@ -4,4 +4,4 @@
 
 国立がん研究センターがん情報サービスの相談員用チャットボットです。
 
-https://aoi.naist.jp/brecobot-counselor-chat/
+[https://aoi.naist.jp/brecobot-counselor-chat/](https://aoi.naist.jp/brecobot-counselor-chat/?step=0)
